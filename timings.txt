@@ -1,0 +1,56 @@
+Timings for LCD Writing
+
+These figures taken from attached scope screenshots for 4 bit and 8 bit modes
+Worked on display correctly
+
+Extra GPIO used for Scope trigger and reference point same for both modes
+
+Code removes 
+	Unnecssary write Enable pin low (should already be)
+	Reduce delay between writes for Enable going Low to 80us was 100us
+	Improve delay instead of always blocking AFTER write for 100us
+		Now see how long to wait with Enable High to achieve 80 us
+
+So at first call we do not have any long delay, for subsequent calls we have
+reduced blocking time in LCD functions.
+
+From Scope shots on NEW version Enable signal levels show
+
+	High time - how long blocking in PulseEnable function
+	Low time - higher levels of code execution time
+
+Test sequence
+	GPIO high
+	LCD Set cursor
+	LCD Print 20 characters
+	GPIO low
+	Delay 100ms
+
+Time savings are noticeable from timings taken
+
+			4 bit Mode		8 bit Mode
+			Old	New	Saving	Old	New	Saving
+20 char write	(ms)	4.34	3.48	0.86	2.67	1.70	0.97
+just set cursor	(us)	239	107	132	130	81.6	48.4
+Write delay	(us)	130 	83.2	46.8	130	81.6	48.4
+
+Each Write delay is reduced by 20 us by changing delay time and 26 to 28 us by
+better code.
+
+Further improvements by reducing MIN_WRITE_DELAY to 40us and for 4 bit mode
+only waiting 1 us for second nibble as per datasheet makes reductions as 
+follows to what I call Optimum settings
+
+		   4 bit Mode		8 bit Mode
+		   Old	Optimal	Saving	Old	Optimal	Saving
+20 char write (ms) 4.34	1.23	3.11	2.67	0.892	1.778	66% faster
+
+For mega      (ms) --	2.57	--	--	2.13	--
+(no original mega test done)
+
+As the long delay is actually COMMAND delay not write delay change constant to
+
+	_LCD_COMMAND_DELAY at top of LiquidCrystal.cpp
+
+Add method to class to set command delay time between limits of _LCD_COMMAND_DELAY
+and _MAX_COMMAND_DELAY, constants defined as 40 and 200 us respectively.
